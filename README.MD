@@ -1,26 +1,35 @@
 # ros2_astra_camera
 
-A ROS2 driver for Orbbec 3D cameras
+A ROS2 driver for Orbbec 3D cameras. Tested on ROS 2 Jazzy / Ubuntu 24.04.
+
+> Architecture, data flow and depth/colour synchronisation are documented in
+> [docs/astra_pro_ros2_notes_vi.md](docs/astra_pro_ros2_notes_vi.md) (Vietnamese).
 
 ## Install dependencies
 
 ### ROS2
 
 ● Please refer to the
-official [ROS 2 installation guide](https://docs.ros.org/en/galactic/Installation/Ubuntu-Install-Debians.html)
+official [ROS 2 installation guide](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
 
 ### other dependencies
 
 ● Install dependencies (be careful with your ROS distribution)
 
 ```bash
- Assuming you have sourced the ros environment, same below
-sudo apt install libgflags-dev  ros-$ROS_DISTRO-image-geometry ros-$ROS_DISTRO-camera-info-manager\
-ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-image-publisher libgoogle-glog-dev libusb-1.0-0-dev libeigen3-dev
-
+# Assuming you have sourced the ros environment, same below
+sudo apt install libgflags-dev ros-$ROS_DISTRO-image-geometry ros-$ROS_DISTRO-camera-info-manager \
+ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-message-filters ros-$ROS_DISTRO-cv-bridge \
+libgoogle-glog-dev libusb-1.0-0-dev libeigen3-dev
 ```
 
-● Install libuvc
+● Install libuvc — on Ubuntu 24.04 the distribution package is enough:
+
+```bash
+sudo apt install libuvc-dev
+```
+
+or build it from source if your distribution does not ship it:
 
 ```bash
 git clone https://github.com/libuvc/libuvc.git
@@ -54,7 +63,7 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 
 ```bash
  cd ~/ros2_ws
-source /opt/ros/galactic/setup.bash 
+source /opt/ros/jazzy/setup.bash 
 colcon build --event-handlers  console_direct+  --cmake-args  -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -63,7 +72,7 @@ Starting the camera
 ● In terminal 1
 
 ```bash
-source /opt/ros/galactic/setup.bash 
+source /opt/ros/jazzy/setup.bash 
 source ./install/setup.bash 
 ros2 launch astra_camera astra.launch.xml
 ```
@@ -71,7 +80,7 @@ ros2 launch astra_camera astra.launch.xml
 ● In terminal 2
 
 ```bash
-source /opt/ros/galactic/setup.bash 
+source /opt/ros/jazzy/setup.bash 
 source ./install/setup.bash 
 rviz2
 ```
@@ -79,7 +88,7 @@ rviz2
 ● List topics / services/ parameters (open a new terminal)
 
 ```bash
-source /opt/ros/galactic/setup.bash 
+source /opt/ros/jazzy/setup.bash 
 ros2 topic list
 ros2 service list 
 ros2 param list
@@ -332,7 +341,7 @@ projection_matrix:
 
 ## DDS Tuning
 
-The default DDS settings (Galactic) may not be efficient for data transmission. Different DDS settings will have
+The default DDS settings may not be efficient for data transmission. Different DDS settings will have
 different performance. Here we take CycloneDDS as an example. For detailed information, please refer
 to[ROS DDS Tuning](https://docs.ros.org/en/humble/How-To-Guides/DDS-tuning.html)。
 

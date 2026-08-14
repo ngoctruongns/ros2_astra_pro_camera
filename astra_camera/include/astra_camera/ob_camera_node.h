@@ -12,16 +12,14 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <rclcpp/rclcpp.hpp>
 
 
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <std_srvs/srv/set_bool.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/distortion_models.hpp>
@@ -40,6 +38,8 @@
 #include "astra_camera_msgs/srv/get_string.hpp"
 #include "astra_camera_msgs/srv/set_int32.hpp"
 
+#include "compat/cv_bridge.h"
+#include "compat/tf2.h"
 #include "constants.h"
 #include "utils.h"
 #include "uvc_camera_driver.h"

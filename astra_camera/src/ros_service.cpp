@@ -12,6 +12,7 @@
 /**************************************************************************/
 
 #include <rclcpp/rclcpp.hpp>
+#include <cstdint>
 #include <thread>
 
 #include "astra_camera/utils.h"

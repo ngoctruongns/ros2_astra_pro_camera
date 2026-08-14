@@ -34,22 +34,20 @@
 #include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/subscriber_filter.hpp>
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/exact_time.h>
-#include <message_filters/sync_policies/approximate_time.h>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <image_geometry/pinhole_camera_model.h>
 
-#include <cv_bridge/cv_bridge.h>
-#include <opencv4/opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cstdint>
 #include <memory>
 #include <limits>
 #include <string>
 #include <vector>
 
+#include "astra_camera/compat/cv_bridge.h"
+#include "astra_camera/compat/image_geometry.h"
+#include "astra_camera/compat/message_filters.h"
 #include "depth_traits.h"
 #include "point_cloud_xyz.h"
 #include "astra_camera/utils.h"

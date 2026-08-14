@@ -11,6 +11,7 @@
 /**************************************************************************/
 
 #pragma once
+#include <cstdint>
 #include <cstdlib>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>

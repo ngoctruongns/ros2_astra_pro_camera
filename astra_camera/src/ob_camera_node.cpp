@@ -10,9 +10,11 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <cstdint>
+
+#include "astra_camera/compat/cv_bridge.h"
 #include "astra_camera/ob_camera_node.h"
 #include "astra_camera/utils.h"
-#include <cv_bridge/cv_bridge.h>
 namespace astra_camera {
 
 void OBCameraNode::init() {
@@ -128,6 +130,11 @@ void OBCameraNode::stopStreams() {
 void OBCameraNode::setupDevices() {
   for (const auto& stream_index : IMAGE_STREAMS) {
     stream_started_[stream_index] = false;
+    if (use_uvc_camera_ && stream_index == COLOR) {
+      // Colour is delivered by UVCCameraDriver, so no OpenNI stream is created for it and
+      // pollFrame() must not hand it to waitForAnyStream().
+      continue;
+    }
     if (enable_stream_[stream_index] && device_->hasSensor(stream_index.first)) {
       auto stream = std::make_shared<openni::VideoStream>();
       auto status = stream->create(*device_, stream_index.first);
@@ -338,8 +345,10 @@ void OBCameraNode::getParameters() {
   }
   setAndGetNodeParameter(parameters_, publish_tf_, "publish_tf", true);
   setAndGetNodeParameter(parameters_, tf_publish_rate_, "tf_publish_rate", 10.0);
+  // Default derived from camera_name (like every other frame id), so that two cameras launched
+  // with different names do not both claim the same camera_link frame.
   setAndGetNodeParameter(parameters_, camera_link_frame_id_, "camera_link_frame_id",
-                         DEFAULT_BASE_FRAME_ID);
+                         camera_link_frame_id_);
   setAndGetNodeParameter(parameters_, depth_registration_, "depth_registration", false);
   setAndGetNodeParameter(parameters_, color_depth_synchronization_, "color_depth_synchronization",
                          false);
@@ -379,6 +388,10 @@ void OBCameraNode::setupTopics() {
 void OBCameraNode::setupPublishers() {
   for (const auto& stream_index : IMAGE_STREAMS) {
     if (enable_stream_[stream_index]) {
+      if (use_uvc_camera_ && stream_index == COLOR) {
+        // UVCCameraDriver owns color/image_raw and color/camera_info in this configuration.
+        continue;
+      }
       std::string name = stream_name_[stream_index];
       std::string topic = name + "/image_raw";
       auto image_qos = image_qos_[stream_index];

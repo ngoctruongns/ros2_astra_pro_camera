@@ -13,7 +13,9 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 #include <cstdlib>
+#include <sys/types.h>
 
 #define OB_ROS_MAJOR_VERSION 1
 #define OB_ROS_MINOR_VERSION 1

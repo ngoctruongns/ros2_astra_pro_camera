@@ -2,6 +2,7 @@
 #include <semaphore.h>
 #include <sys/shm.h>
 
+#include <cerrno>
 #include <cstring>
 #include <iostream>
 

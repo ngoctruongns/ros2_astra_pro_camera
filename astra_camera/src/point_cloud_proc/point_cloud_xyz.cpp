@@ -30,11 +30,12 @@
 // ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <cstdint>
 #include <memory>
 
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/image_encodings.hpp>
-#include <image_geometry/pinhole_camera_model.h>
+#include "astra_camera/compat/image_geometry.h"
 #include "astra_camera/point_cloud_proc/point_cloud_xyz.h"
 
 namespace astra_camera {

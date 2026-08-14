@@ -11,11 +11,11 @@
 /**************************************************************************/
 
 #pragma once
+#include <cstdint>
 #include <functional>
 
 #include <rclcpp/rclcpp.hpp>
 #include <Eigen/Dense>
-#include <tf2/LinearMath/Quaternion.h>
 
 #include <glog/logging.h>
 #include <openni2/OpenNI.h>
@@ -23,6 +23,7 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 
+#include "compat/tf2.h"
 #include "constants.h"
 #include "types.h"
 #include "astra_camera_msgs/msg/extrinsics.hpp"

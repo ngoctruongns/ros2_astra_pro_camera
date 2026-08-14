@@ -10,9 +10,13 @@
 /*                                                                        */
 /**************************************************************************/
 
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <utility>
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include "astra_camera/compat/cv_bridge.h"
 #include "astra_camera/uvc_camera_driver.h"
 #include "astra_camera/utils.h"
 
@@ -71,17 +75,19 @@ UVCCameraDriver::UVCCameraDriver(rclcpp::Node* node, std::shared_ptr<Parameters>
   setAndGetNodeParameter(parameters_, roi_.width, "color_roi_width", -1);
   setAndGetNodeParameter(parameters_, roi_.height, "color_roi_height", -1);
   setAndGetNodeParameter(parameters_, camera_name_, "camera_name", camera_name_);
+  // The frame ids must match the ones OBCameraNode builds for the OpenNI streams, otherwise the
+  // images fall outside the TF tree and PointCloudXyzrgbNode drops every depth/color pair.
   setAndGetNodeParameter<std::string>(parameters_, config_.frame_id, "color_frame_id",
-                                      "color_frame");
+                                      camera_name_ + "_color_frame");
   setAndGetNodeParameter<std::string>(parameters_, config_.optical_frame_id,
-                                      "color_optical_frame_id", "color_optical_frame");
-  std::string rgb_qos_profile_str, rgb_info_qos_profile_str;
-  setAndGetNodeParameter<std::string>(parameters_, rgb_qos_profile_str, "rgb_qos_profile",
+                                      "color_optical_frame_id",
+                                      camera_name_ + "_color_optical_frame");
+  std::string color_qos_str, color_info_qos_str;
+  setAndGetNodeParameter<std::string>(parameters_, color_qos_str, "color_qos", "default");
+  setAndGetNodeParameter<std::string>(parameters_, color_info_qos_str, "color_camera_info_qos",
                                       "default");
-  setAndGetNodeParameter<std::string>(parameters_, rgb_info_qos_profile_str, "rgb_info_qos_profile",
-                                      "default");
-  color_qos_profile_ = getRMWQosProfileFromString(rgb_qos_profile_str);
-  color_info_qos_profile_ = getRMWQosProfileFromString(rgb_info_qos_profile_str);
+  color_qos_profile_ = getRMWQosProfileFromString(color_qos_str);
+  color_info_qos_profile_ = getRMWQosProfileFromString(color_info_qos_str);
   setAndGetNodeParameter<std::string>(parameters_, color_info_url_, "color_info_url", "");
   if (!color_info_url_.empty()) {
     camera_info_manager_ = std::make_unique<camera_info_manager::CameraInfoManager>(

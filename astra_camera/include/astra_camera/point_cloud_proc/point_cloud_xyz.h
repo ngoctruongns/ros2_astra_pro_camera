@@ -34,9 +34,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <image_transport/image_transport.hpp>
 #include <sensor_msgs/image_encodings.hpp>
-#include <image_geometry/pinhole_camera_model.h>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <memory>
+#include "astra_camera/compat/image_geometry.h"
 #include "depth_traits.h"
 #include "astra_camera/utils.h"
 #include "astra_camera/dynamic_params.h"
