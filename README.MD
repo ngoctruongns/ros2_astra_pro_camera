@@ -40,44 +40,80 @@ sudo make install
 sudo ldconfig # Refreshing the link library
 ```
 
-### Getting Started
+## Getting Started
 
-#### Use cases
+### Setup
 
-● Create a new ros2 workspace
+● Create a new ROS2 workspace
 
 ```bash
 mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
 ```
 
-● Extract and copy openNISDk_ROS2_xxx.tar.gz to ~/ros2_ws/src/
+● Clone this repository
+
+```bash
+git clone https://github.com/yourusername/ros2_astra_camera.git
+```
+
 ● Install libusb rules
 
 ```bash
-cd ~/ros2_ws/src/ros2_astra_camera/astra_camera/scripts
+cd ros2_astra_camera/astra_camera/scripts
 sudo bash install.sh
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-● Compiling
+● Build the package
 
 ```bash
- cd ~/ros2_ws
+cd ~/ros2_ws
 source /opt/ros/jazzy/setup.bash 
-colcon build --event-handlers  console_direct+  --cmake-args  -DCMAKE_BUILD_TYPE=Release
+colcon build --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
-Starting the camera
+### Running the Camera
 
-● In terminal 1
+#### For Astra Pro (with UVC color)
 
 ```bash
 source /opt/ros/jazzy/setup.bash 
 source ./install/setup.bash 
-ros2 launch astra_camera astra.launch.xml
+ros2 launch astra_camera astra_pro.launch.py
 ```
 
-● In terminal 2
+#### For Astra (OpenNI only)
+
+```bash
+source /opt/ros/jazzy/setup.bash 
+source ./install/setup.bash 
+ros2 launch astra_camera astra.launch.py
+```
+
+#### Launch with custom parameters
+
+```bash
+# Example: Custom camera name
+ros2 launch astra_camera astra_pro.launch.py camera_name:=my_camera
+
+# Example: Custom color resolution (Astra Pro)
+ros2 launch astra_camera astra_pro.launch.py color_width:=1280 color_height:=720 color_fps:=15
+
+# Example: Enable depth registration (Astra)
+ros2 launch astra_camera astra.launch.py depth_registration:=true
+
+# Example: Multiple parameters
+ros2 launch astra_camera astra_pro.launch.py \
+  camera_name:=my_camera \
+  enable_depth:=true \
+  enable_color:=true \
+  depth_registration:=true
+```
+
+### View in RViz2
+
+Open another terminal and run:
 
 ```bash
 source /opt/ros/jazzy/setup.bash 
@@ -85,16 +121,38 @@ source ./install/setup.bash
 rviz2
 ```
 
-● List topics / services/ parameters (open a new terminal)
+In RViz2:
+1. Change **Fixed Frame** to `camera_link`
+2. Add **Image** display → Select `/camera/color/image_raw` topic
+3. Add **Image** display → Select `/camera/depth/image_raw` topic  
+4. Add **PointCloud2** display → Select `/camera/depth/points` or `/camera/depth_registered/points`
+
+### Check Topics and Services
+
+List available topics:
 
 ```bash
 source /opt/ros/jazzy/setup.bash 
 ros2 topic list
-ros2 service list 
-ros2 param list
 ```
 
-Select the topic you want to display
+List available services:
+
+```bash
+ros2 service list
+```
+
+List node parameters:
+
+```bash
+ros2 param list /camera
+```
+
+View topic information with QoS:
+
+```bash
+ros2 topic info -v /camera/depth/image_raw
+```
 
 ● Get camera parameters
 
@@ -199,86 +257,114 @@ ros2 service call  /camera/toggle_depth std_srvs/srv/SetBool "{data: true}"
 ros2 service call /camera/toggle_uvc_camera std_srvs/srv/SetBool "{data : true}"
 ```
 
-### Multi-Camera
+## Multi-Camera
 
-● First, get the serial number of the camera, plug in the camera and run
+### Get Serial Numbers
+
+First, get the serial number of each camera:
 
 ```bash
+source /opt/ros/jazzy/setup.bash 
+source ./install/setup.bash
 ros2 run astra_camera list_devices_node
 ```
 
-● Set the parameter device_num to the number of cameras
+Note the serial numbers for each camera.
 
-● Go to the `ros2_astra_camera/launch/multi_xxx.launch`   and change the serial number. Currently, different cameras can
-only be distinguished by the serial number,
+### Launch Multiple Cameras
 
-```xml
-<launch>
-    <!-- unique camera name-->
-    <arg name="camera_name" default="camera"/>
-    <!-- Hardware depth registration -->
-    <arg name="3d_sensor" default="astra"/>
-    <!-- stereo_s_u3, astrapro, astra -->
-    <arg name="camera1_prefix" default="01"/>
-    <arg name="camera2_prefix" default="02"/>
-    <arg name="camera1_serila_number" default="ADA611300CE"/>
-    <arg name="camera2_serila_number" default="sn123456789"/>
-    <arg name="device_num" default="2"/>
-    <node name="camera" pkg="astra_camera" type="cleanup_shm_node" output="screen"/>
-    <include file="$(find-pkg-share astra_camera)/launch/$(arg 3d_sensor).launch.xml">
-        <arg name="camera_name" value="$(var camera_name)_$(var camera1_prefix)"/>
-        <arg name="serial_number" value="$(var camera1_serila_number)"/>
-        <arg name="device_num" value="$(var device_num)"/>
-    </include>
-
-    <include file="$(ind-pkg-share astra_camera)/launch/$(var 3d_sensor).launch.xml">
-        <arg name="camera_name" value="$(var camera_name)_$(var camera2_prefix)"/>
-        <arg name="serial_number" value="$(var camera2_serila_number)"/>
-        <arg name="device_num" value="$(var device_num)"/>
-    </include>
-    <node pkg="tf2_ros" exec="static_transform_publisher" name="camera_tf"
-          args="0 0 0 0 0 0 camera01_link camera02_link"/>
-</launch>
-```
-
-* astra camera will use semaphore to do process synchronization,
-if the camera start fails, the semaphore file may be left in the `/dev/shm`,
-causing the next start to be stuck.
-Before launch, please run
+For multiple cameras of the same model, use the corresponding launch file with different serial numbers and namespaces:
 
 ```bash
+# Terminal 1 - Camera 1 (Astra Pro with serial ABC123)
+source /opt/ros/jazzy/setup.bash 
+source ./install/setup.bash
+ros2 launch astra_camera astra_pro.launch.py \
+  camera_name:=camera_01 \
+  serial_number:=ABC123 \
+  device_num:=2
+
+# Terminal 2 - Camera 2 (Astra Pro with serial DEF456)
+source /opt/ros/jazzy/setup.bash 
+source ./install/setup.bash
+ros2 launch astra_camera astra_pro.launch.py \
+  camera_name:=camera_02 \
+  serial_number:=DEF456 \
+  device_num:=2
+```
+
+### Shared Memory Cleanup
+
+Astra camera uses semaphores for process synchronization. If the camera fails to start, the semaphore file may remain in `/dev/shm`, causing the next launch to hang.
+
+Before launching, you can clean up the shared memory:
+
+```bash
+source /opt/ros/jazzy/setup.bash 
+source ./install/setup.bash
 ros2 run astra_camera cleanup_shm_node 
 ```
 
-to clean up `/dev/shm/`.
-
-* Launch
+Or manually clean up:
 
 ```bash
-ros2 launch astra_camera multi_astra.launch.xml
+sudo rm -f /dev/shm/astra_camera_*
 ```
 
-## Use calibration camera parameter
+### View All Camera Topics
 
-* Set camera info url, Go to `xxx.launch`
+In RViz2 or another application, you can now access topics from both cameras:
 
-```xml
-<launch>
-    <!--...-->
-    <arg name="ir_info_url" default="file:///you_ir_camera_calib_path/depth_camera.yaml"/>
-    <arg name="color_info_url" default="file:///you_depth_camera_calib_path/rgb_camera.yaml"/>
-    <!--...-->
-</launch>
+```bash
+# Camera 1 topics
+/camera_01/depth/image_raw
+/camera_01/color/image_raw
+/camera_01/depth/points
+
+# Camera 2 topics
+/camera_02/depth/image_raw
+/camera_02/color/image_raw
+/camera_02/depth/points
 ```
 
-* Calibration file should be like
+## Camera Calibration
 
-> Be careful the camera name The color camera is rgb_camera, the depth/IR camera name is ir_camera
+You can use calibration files for more accurate camera parameters. To use custom calibration:
+
+### Prepare Calibration Files
+
+The calibration files should be in YAML format. Create two files: one for depth/IR camera and one for color camera.
+
+**Depth/IR Camera Calibration** (`depth_camera.yaml`):
 
 ```yaml
 image_width: 640
 image_height: 480
-# The camera name is fixed. The color camera is rgb_camera, the depth/IR camera name is ir_camera
+camera_name: ir_camera
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [517.301, 0, 326.785, 0, 519.291, 244.563, 0, 0, 1]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [-0.41527, 0.31874, -0.00197, 0.00071, 0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [0.999973, 0.00612598, -0.00406652, -0.00610201, 0.999964, 0.00588094, 0.0041024, -0.00585596, 0.999974]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [517.301, 0, 326.785, 0, 0, 519.291, 244.563, 0, 0, 0, 1, 0]
+```
+
+**Color Camera Calibration** (`color_camera.yaml`):
+
+```yaml
+image_width: 640
+image_height: 480
 camera_name: rgb_camera
 camera_matrix:
   rows: 3
@@ -292,12 +378,23 @@ distortion_coefficients:
 rectification_matrix:
   rows: 3
   cols: 3
-  data: [0.999973, 0.00612598, -0.00406652, -0.00610201, 0.999964, 0.00588094, 0.0041024, -0.00585596, 0.999974 ]
+  data: [0.999973, 0.00612598, -0.00406652, -0.00610201, 0.999964, 0.00588094, 0.0041024, -0.00585596, 0.999974]
 projection_matrix:
   rows: 3
   cols: 4
   data: [517.301, 0, 326.785, -25.3167, 0, 519.291, 244.563, 0.282065, 0, 0, 1, 0.0777703]
+```
 
+> **Important:** Camera names must be exactly `ir_camera` (for depth/IR) and `rgb_camera` (for color).
+
+### Launch with Calibration Files
+
+Pass the calibration file paths to the launch file:
+
+```bash
+ros2 launch astra_camera astra_pro.launch.py \
+  ir_info_url:=file:///path/to/depth_camera.yaml \
+  color_info_url:=file:///path/to/color_camera.yaml
 ```
 
 ## Launch parameters
@@ -339,33 +436,67 @@ projection_matrix:
 * `oni_log_to_file`, Whether to output OpenNI logs to a file, by default it will save in Log folder under the path of
   the currently running program
 
-## DDS Tuning
+## Advanced Configuration
 
-The default DDS settings may not be efficient for data transmission. Different DDS settings will have
-different performance. Here we take CycloneDDS as an example. For detailed information, please refer
-to[ROS DDS Tuning](https://docs.ros.org/en/humble/How-To-Guides/DDS-tuning.html)。
+### DDS Tuning (Optional - For High-Performance Applications)
 
-● Edit cyclonedds configuration file
+**When to use:** Only if you experience:
+- High latency (delayed image/data delivery)
+- Dropped frames or messages
+- Running multiple cameras on the same network
+- Limited network bandwidth
+
+**Default is usually fine for single camera applications.** Only proceed if you have performance issues.
+
+#### What is DDS?
+
+DDS (Data Distribution Service) is the middleware that ROS2 uses to communicate between nodes. It handles how image data, point clouds, and other messages are transmitted over the network/local IPC.
+
+#### Quick Fix for Most Cases
+
+If you just need better performance, this usually works:
 
 ```bash
-sudo gedit /etc/cyclonedds/config.xml
+# Add to ~/.bashrc or ~/.zshrc
+export ROS_LOCALHOST_ONLY=1
 ```
 
-Add
+This forces all ROS2 communication to use localhost (loopback), which is faster for single-machine setups.
+
+Then restart your terminals:
+```bash
+source ~/.bashrc
+```
+
+#### Full DDS Tuning (CycloneDDS)
+
+Only do this if the quick fix above doesn't work:
+
+**Step 1: Create CycloneDDS config file**
+
+```bash
+sudo nano /etc/cyclonedds/config.xml
+```
+
+Add this content:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-            xsi:schemaLocation="https://cdds.io/confighttps://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+            xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
     <Domain id="any">
         <General>
+            <!-- Use localhost only for local machine communication -->
             <NetworkInterfaceAddress>lo</NetworkInterfaceAddress>
+            <!-- Disable multicast for cleaner network usage -->
             <AllowMulticast>false</AllowMulticast>
         </General>
         <Internal>
+            <!-- Increase buffer size for high-throughput cameras (multiple streams) -->
             <MinimumSocketReceiveBufferSize>16MB</MinimumSocketReceiveBufferSize>
         </Internal>
         <Discovery>
+            <!-- Automatic node discovery -->
             <ParticipantIndex>auto</ParticipantIndex>
             <MaxAutoParticipantIndex>30</MaxAutoParticipantIndex>
             <Peers>
@@ -376,29 +507,82 @@ Add
 </CycloneDDS>
 ```
 
-● Set the environment variables, add to .zshrc or .bashrc
+**Step 2: Add environment variables**
+
+Add to `~/.bashrc` or `~/.zshrc`:
 
 ```bash
-export ROS_DOMAIN_ID=42 # Numbers from 0 to 232
-export ROS_LOCALHOST_ONLY=1
+export ROS_DOMAIN_ID=42                          # Domain ID (0-232)
+export ROS_LOCALHOST_ONLY=1                       # Stay on localhost
 export CYCLONEDDS_URI=file:///etc/cyclonedds/config.xml
 ```
 
-Tip：to understand why the maximum ROS_DOMAIN_ID is 232, please
-visit [The ROS DOMAIN ID](https://docs.ros.org/en/humble/Concepts/About-Domain-ID.html)
-● Increase UDP receive buffer size
-Edit
-
+Then reload:
 ```bash
-/etc/sysctl.d/10-cyclone-max.conf
+source ~/.bashrc
 ```
 
-Add
+**Step 3: Increase OS buffer sizes (optional but recommended)**
 
 ```bash
+sudo nano /etc/sysctl.d/10-cyclone-max.conf
+```
+
+Add:
+```bash
+# Increase network buffer for high throughput
 net.core.rmem_max=2147483647
 net.core.rmem_default=2147483647
+net.core.wmem_max=2147483647
+net.core.wmem_default=2147483647
 ```
+
+Apply changes:
+```bash
+sudo sysctl -p /etc/sysctl.d/10-cyclone-max.conf
+```
+
+#### What Each Setting Does
+
+| Setting | Purpose | When Needed |
+|---------|---------|------------|
+| `NetworkInterfaceAddress=lo` | Use loopback (localhost) only | Always for single machine |
+| `AllowMulticast=false` | Disable broadcast discovery | Reduces network noise |
+| `MinimumSocketReceiveBufferSize=16MB` | Larger buffer for images | Multiple cameras or high FPS |
+| `ROS_LOCALHOST_ONLY=1` | Force localhost communication | Best for single computer |
+| `net.core.rmem_max` | OS receive buffer limit | Large camera data (multiple streams) |
+
+#### Verify DDS Configuration
+
+Check your DDS middleware:
+```bash
+ros2 doctor
+```
+
+Should show your configured DDS implementation (usually CycloneDDS).
+
+#### Performance Testing
+
+Compare performance before and after tuning:
+
+```bash
+# Measure latency of depth images
+ros2 topic delay /camera/depth/image_raw
+
+# Measure latency of color images
+ros2 topic delay /camera/color/image_raw
+
+# Check message rate
+ros2 topic hz /camera/depth/image_raw
+```
+
+Record measurements before and after tuning to see if it helps.
+
+#### Further Reading
+
+- [ROS DDS Tuning Guide](https://docs.ros.org/en/humble/How-To-Guides/DDS-tuning.html)
+- [ROS Domain IDs](https://docs.ros.org/en/humble/Concepts/About-Domain-ID.html)
+- [CycloneDDS Documentation](https://github.com/eclipse-cyclonedds/cyclonedds)
 
 ## Frequently Asked Questions
 
